@@ -520,7 +520,6 @@ while [[ "$1" != "" ]]; do
         set -x
         if [[ -f "$VALUE" ]]; then
             COMPOSE_OVERRIDE_ORIGINAL=$VALUE
-            COMPOSE_OVERRIDE_OPTION="-f $COMPOSE_OVERRIDE_FILE"
         else
             usage "Can't access override compose file $VALUE"
             exit 1
@@ -683,6 +682,7 @@ fi
 # Copy it to $COMPOSE_DIR as full path $COMPOSE_OVERRIDE_FILE
 if [[ "$COMPOSE_ACTION" == "up"* && ! -z "$COMPOSE_OVERRIDE_ORIGINAL" ]]; then
     cp ${BASH_VERBOSE} "$COMPOSE_OVERRIDE_ORIGINAL" "$COMPOSE_OVERRIDE_FILE"
+    COMPOSE_OVERRIDE_OPTION="-f $COMPOSE_OVERRIDE_FILE"
 fi
 
 if [[ -n "${COMPOSE_ACTION}" ]]; then
