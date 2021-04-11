@@ -40,7 +40,8 @@ Experimental/Advanced Options:
   -v    Mounts volume for IdeaProject in IntelliJ container into user's home directory - EXPERIMENTAL: ONLY USE IF YOU UNDERSTAND VOLUME MOUNTS
   -m    Mounts volume for .m2 in IntelliJ container into user's home directory - EXPERIMENTAL: ONLY USE IF YOU UNDERSTAND VOLUME MOUNTS
   -p    Docker-compose project name to use, allows running multiple versions of the same image
-  --preserve-volumes    Do not recreate anonymous volumes
+  --preserve-volumes    Do not recreate anonymous volumes 
+  --merge <COMPOSE_OVERRIDE_ORIGINAL>   Override standart compose file with additional yml Compose File. Ex.: Add external Volumes
 
 Command Options:
   up    --no-start       Create containers without starting them
@@ -376,6 +377,7 @@ IDEA="IdeaProjects_docker"
 COMPOSE_COMMAND="${NIMBUS_COMPOSE_COMMAND-docker-compose}"
 COMPOSE_ACTION=""
 COMPOSE_ARGS="${NIMBUS_COMPOSE_ARGS}"
+COMPOSE_OVERRIDE_OPTION=""
 
 DOCKERAPP_COMMAND="${NIMBUS_DOCKERAPP_COMMAND-docker-app}"
 DOCKERAPP_ACTION=""
@@ -514,6 +516,17 @@ while [[ "$1" != "" ]]; do
         get_tags
         exit 0
         ;;
+    --merge)
+        set -x
+        if [[ -f "$VALUE" ]]; then
+            COMPOSE_OVERRIDE_ORIGINAL=$VALUE
+            COMPOSE_OVERRIDE_OPTION="-f $COMPOSE_OVERRIDE_FILE"
+        else
+            usage "Can't access override compose file $VALUE"
+            exit 1
+        fi
+        shift 2
+        ;;
     up)
         DOCKERAPP_ACTION="render"
         
@@ -586,6 +599,7 @@ create_network
 COMPOSE_ARGS="$@"
 COMPOSE_DIR="${NIMBUS_BASEDIR}/cache/${PROJECT}/${REPOSITORY}/${IMAGE}/${VERSION}"
 COMPOSE_FILE="${COMPOSE_DIR}/${IMAGE}.yml"
+COMPOSE_OVERRIDE_FILE="${COMPOSE_DIR}/${IMAGE}.override.yml"
 COMPOSE_BACKUP="${COMPOSE_FILE}.bk"
 
 if [[ -n "${DOCKERAPP_ACTION}" ]]; then
@@ -665,6 +679,12 @@ if [[ "$COMPOSE_ACTION" == "up"* && "$NIMBUS_FORCE" -eq 0 && "$COMPOSE_ARGS" != 
     fi
 fi
 
+# If supplied override yml Compose File with additional attributes
+# Copy it to $COMPOSE_DIR as full path $COMPOSE_OVERRIDE_FILE
+if [[ "$COMPOSE_ACTION" == "up"* && ! -z "$COMPOSE_OVERRIDE_ORIGINAL" ]]; then
+    cp ${BASH_VERBOSE} "$COMPOSE_OVERRIDE_ORIGINAL" "$COMPOSE_OVERRIDE_FILE"
+fi
+
 if [[ -n "${COMPOSE_ACTION}" ]]; then
     if [[ $COMPOSE_ACTION == *"up"* && $PRESERVE_VOLUMES -eq 0 ]]; then
         COMPOSE_ARGS="$COMPOSE_ARGS -V"
@@ -674,7 +694,7 @@ if [[ -n "${COMPOSE_ACTION}" ]]; then
         COMPOSE_ARGS="$COMPOSE_ARGS -v"
     fi
 
-    COMPOSE_COMMAND="${COMPOSE_COMMAND} -p ${PROJECT} -f ${COMPOSE_FILE} ${COMPOSE_ACTION} ${COMPOSE_ARGS}"
+    COMPOSE_COMMAND="${COMPOSE_COMMAND} -p ${PROJECT} -f ${COMPOSE_FILE} ${COMPOSE_OVERRIDE_OPTION} ${COMPOSE_ACTION} ${COMPOSE_ARGS}"
 
     debug "Running: ${COMPOSE_COMMAND}"
 
