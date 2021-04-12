@@ -517,7 +517,6 @@ while [[ "$1" != "" ]]; do
         exit 0
         ;;
     --merge)
-        set -x
         if [[ -f "$VALUE" ]]; then
             COMPOSE_OVERRIDE_ORIGINAL=$VALUE
         else
